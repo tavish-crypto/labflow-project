@@ -1,0 +1,14 @@
+{
+  "name": "labflow-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "client": "npm --prefix client run dev",
+    "server": "npm --prefix server run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
