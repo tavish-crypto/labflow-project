@@ -3,6 +3,7 @@ import {
   findSampleById,
   createSample,
 } from "./sample.repository.js";
+import type { CreateSampleInput } from "./sample.validation.js";
 
 export async function getAllSamples() {
   return findAllSamples();
@@ -11,14 +12,6 @@ export async function getSampleById(id: string) {
   return findSampleById(id);
 }
 
-type CreateSampleInput = {
-  labId: string;
-  accessionNumber: string;
-  patientReference?: string;
-  specimenType: string;
-  priority: "ROUTINE" | "URGENT" | "STAT";
-  dueAt: string;
-};
 
 export async function createNewSample(input: CreateSampleInput) {
   return createSample({

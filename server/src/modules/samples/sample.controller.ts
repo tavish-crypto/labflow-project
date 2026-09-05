@@ -5,6 +5,9 @@ import {
   createNewSample,
 } from "./sample.service.js";
 
+import { createSampleSchema } from "./sample.validation.js";
+import { Prisma } from "@prisma/client";
+
 export async function getSamplesController(
   _req: Request,
   res: Response
@@ -67,45 +70,57 @@ export async function createSampleController(
   res: Response
 ) {
   try {
-    const {
-      labId,
-      accessionNumber,
-      patientReference,
-      specimenType,
-      priority,
-      dueAt,
-    } = req.body;
+    const result = createSampleSchema.safeParse(req.body);
 
-    if (
-      !labId ||
-      !accessionNumber ||
-      !specimenType ||
-      !priority ||
-      !dueAt
-    ) {
+    if (!result.success) {
       res.status(400).json({
-        error: "Missing required fields",
+        error: "Validation failed",
+        details: result.error.flatten().fieldErrors,
       });
       return;
     }
 
-    const sample = await createNewSample({
-      labId,
-      accessionNumber,
-      patientReference,
-      specimenType,
-      priority,
-      dueAt,
-    });
+    const sample = await createNewSample(result.data);
 
     res.status(201).json({
       data: sample,
     });
-  } catch (error) {
-    console.error("Failed to create sample:", error);
-
-    res.status(500).json({
-      error: "Failed to create sample",
+  }  catch (error) {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    res.status(409).json({
+      error: "A sample with this accession number already exists",
     });
+    return;
   }
+
+  console.error("Failed to create sample:", error);
+
+  res.status(500).json({
+    error: "Failed to create sample",
+  });
 }
+}
+
+//     const sample = await createNewSample({
+//       labId,
+//       accessionNumber,
+//       patientReference,
+//       specimenType,
+//       priority,
+//       dueAt,
+//     });
+
+//     res.status(201).json({
+//       data: sample,
+//     });
+//   } catch (error) {
+//     console.error("Failed to create sample:", error);
+
+//     res.status(500).json({
+//       error: "Failed to create sample",
+//     });
+//   }
+// }
