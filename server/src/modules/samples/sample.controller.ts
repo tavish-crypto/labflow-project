@@ -3,9 +3,11 @@ import {
   getAllSamples,
   getSampleById,
   createNewSample,
+  changeSampleStatus,
 } from "./sample.service.js";
 
 import { createSampleSchema } from "./sample.validation.js";
+import { updateSampleStatusSchema } from "./sample.validation.js";
 import { Prisma } from "@prisma/client";
 
 export async function getSamplesController(
@@ -103,24 +105,72 @@ export async function createSampleController(
   });
 }
 }
+export async function updateSampleStatusController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const id = req.params.id;
 
-//     const sample = await createNewSample({
-//       labId,
-//       accessionNumber,
-//       patientReference,
-//       specimenType,
-//       priority,
-//       dueAt,
-//     });
+    if (typeof id !== "string") {
+      res.status(400).json({
+        error: "Invalid sample id",
+      });
+      return;
+    }
 
-//     res.status(201).json({
-//       data: sample,
-//     });
-//   } catch (error) {
-//     console.error("Failed to create sample:", error);
+    const result =
+      updateSampleStatusSchema.safeParse(req.body);
 
-//     res.status(500).json({
-//       error: "Failed to create sample",
-//     });
-//   }
-// }
+    if (!result.success) {
+      res.status(400).json({
+        error: "Validation failed",
+        details:
+          result.error.flatten().fieldErrors,
+      });
+      return;
+    }
+
+    const updateResult =
+      await changeSampleStatus(
+        id,
+        result.data.status
+      );
+
+    if (!updateResult.success) {
+      if (updateResult.reason === "NOT_FOUND") {
+        res.status(404).json({
+          error: "Sample not found",
+        });
+        return;
+      }
+
+      if (
+        updateResult.reason ===
+        "INVALID_TRANSITION"
+      ) {
+        res.status(409).json({
+          error: "Invalid sample status transition",
+          currentStatus:
+            updateResult.currentStatus,
+          requestedStatus:
+            updateResult.newStatus,
+        });
+        return;
+      }
+    }
+
+    res.json({
+      data: updateResult.sample,
+    });
+  } catch (error) {
+    console.error(
+      "Failed to update sample status:",
+      error
+    );
+
+    res.status(500).json({
+      error: "Failed to update sample status",
+    });
+  }
+}

@@ -57,3 +57,37 @@ export async function createSample(data: {
     },
   });
 }
+
+export async function updateSampleStatus(
+  id: string,
+  status: "RECEIVED" | "IN_PROGRESS" | "COMPLETED" | "REJECTED"
+) {
+  return db.sample.update({
+    where: {
+      id,
+    },
+    data: {
+      status,
+      completedAt:
+        status === "COMPLETED"
+          ? new Date()
+          : null,
+    },
+  });
+}
+
+export async function createSampleStatusEvent(data: {
+  sampleId: string;
+  fromStatus: "RECEIVED" | "IN_PROGRESS" | "COMPLETED" | "REJECTED";
+  toStatus: "RECEIVED" | "IN_PROGRESS" | "COMPLETED" | "REJECTED";
+}) {
+  return db.sampleEvent.create({
+    data: {
+      sampleId: data.sampleId,
+      type: "STATUS_CHANGED",
+      fromStatus: data.fromStatus,
+      toStatus: data.toStatus,
+      note: `Sample status changed from ${data.fromStatus} to ${data.toStatus}`,
+    },
+  });
+}
