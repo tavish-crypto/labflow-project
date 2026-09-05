@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { db } from "./db.js";
+import sampleRouter from "./modules/samples/sample.routes.js";
 
 dotenv.config();
 
@@ -17,34 +17,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.get("/api/samples", async (_req, res) => {
-  try {
-    const samples = await db.sample.findMany({
-      include: {
-        tests: {
-          include: {
-            testDefinition: true,
-          },
-        },
-        events: true,
-        exceptions: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-
-    res.json({
-      data: samples,
-    });
-  } catch (error) {
-    console.error("Failed to fetch samples:", error);
-
-    res.status(500).json({
-      error: "Failed to fetch samples",
-    });
-  }
-});
+app.use("/api/samples", sampleRouter);
 
 const PORT = process.env.PORT || 5000;
 
