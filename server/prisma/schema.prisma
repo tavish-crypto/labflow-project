@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  TECHNICIAN
+}
+
+enum SamplePriority {
+  ROUTINE
+  URGENT
+  STAT
+}
+
+enum SampleStatus {
+  RECEIVED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+enum TestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SampleEventType {
+  CREATED
+  STATUS_CHANGED
+  NOTE_ADDED
+  EXCEPTION_RAISED
+  EXCEPTION_RESOLVED
+}
+
+enum ExceptionSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ExceptionStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum ExceptionType {
+  DELAY
+  QUALITY_ISSUE
+  MISSING_INFORMATION
+  EQUIPMENT_FAILURE
+  OTHER
+}
+
+model Lab {
+  id   String @id @default(cuid())
+  name String
+  code String @unique
+
+  users           User[]
+  samples         Sample[]
+  testDefinitions TestDefinition[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id    String   @id @default(cuid())
+  labId String
+  name  String
+  email String   @unique
+  role  UserRole @default(TECHNICIAN)
+
+  lab Lab @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  sampleEvents       SampleEvent[]
+  resolvedExceptions OperationalException[] @relation("ResolvedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([labId])
+}
+
+model TestDefinition {
+  id    String @id @default(cuid())
+  labId String
+
+  code       String
+  name       String
+  slaMinutes Int
+
+  lab Lab @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  sampleTests SampleTest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([labId, code])
+  @@index([labId])
+}
+
+model Sample {
+  id    String @id @default(cuid())
+  labId String
+
+  accessionNumber  String
+  patientReference String?
+
+  specimenType String
+
+  priority SamplePriority @default(ROUTINE)
+  status   SampleStatus   @default(RECEIVED)
+
+  collectedAt DateTime?
+  receivedAt  DateTime  @default(now())
+  dueAt       DateTime
+  completedAt DateTime?
+
+  lab Lab @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  tests      SampleTest[]
+  events     SampleEvent[]
+  exceptions OperationalException[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([labId, accessionNumber])
+  @@index([labId, status])
+  @@index([labId, dueAt])
+}
+
+model SampleTest {
+  id String @id @default(cuid())
+
+  sampleId         String
+  testDefinitionId String
+
+  status TestStatus @default(PENDING)
+
+  dueAt       DateTime
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  sample         Sample         @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  testDefinition TestDefinition @relation(fields: [testDefinitionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sampleId, testDefinitionId])
+  @@index([sampleId])
+  @@index([status, dueAt])
+}
+
+model SampleEvent {
+  id String @id @default(cuid())
+
+  sampleId String
+  actorId  String?
+
+  type SampleEventType
+
+  fromStatus SampleStatus?
+  toStatus   SampleStatus?
+
+  note String?
+
+  sample Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  actor  User?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([sampleId, createdAt])
+  @@index([actorId])
+}
+
+model OperationalException {
+  id String @id @default(cuid())
+
+  sampleId String
+
+  type     ExceptionType
+  severity ExceptionSeverity @default(MEDIUM)
+  status   ExceptionStatus   @default(OPEN)
+
+  message String
+
+  resolvedById String?
+  resolvedAt   DateTime?
+
+  sample     Sample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  resolvedBy User?  @relation("ResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sampleId, status])
+  @@index([severity, status])
+}
