@@ -91,3 +91,83 @@ export async function createSampleStatusEvent(data: {
     },
   });
 }
+
+export async function findTestDefinitionById(
+  id: string
+) {
+  return db.testDefinition.findUnique({
+    where: {
+      id,
+    },
+  });
+}
+
+
+export async function createSampleTest(data: {
+  sampleId: string;
+  testDefinitionId: string;
+  dueAt: Date;
+}) {
+  return db.sampleTest.create({
+    data: {
+      sampleId: data.sampleId,
+      testDefinitionId: data.testDefinitionId,
+      dueAt: data.dueAt,
+    },
+    include: {
+      testDefinition: true,
+    },
+  });
+}
+
+export async function findSampleTestById(
+  id: string
+) {
+  return db.sampleTest.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      testDefinition: true,
+    },
+  });
+}
+
+export async function updateSampleTestStatus(
+  id: string,
+  status:
+    | "PENDING"
+    | "IN_PROGRESS"
+    | "COMPLETED"
+    | "FAILED"
+    | "CANCELLED"
+) {
+  return db.sampleTest.update({
+    where: {
+      id,
+    },
+    data: {
+      status,
+
+      startedAt:
+        status === "IN_PROGRESS"
+          ? new Date()
+          : undefined,
+
+      completedAt:
+        status === "COMPLETED"
+          ? new Date()
+          : undefined,
+    },
+    include: {
+      testDefinition: true,
+    },
+  });
+}
+export async function findAllTestDefinitions() {
+  return db.testDefinition.findMany({
+    orderBy: {
+      name: "asc",
+    },
+  });
+}

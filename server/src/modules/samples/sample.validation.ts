@@ -40,6 +40,27 @@ export const updateSampleStatusSchema = z.object({
   ]),
 });
 
+
+export const assignTestSchema = z.object({
+  testDefinitionId: z
+    .string()
+    .min(1, "testDefinitionId is required"),
+});
+
+export type AssignTestInput = z.infer<
+  typeof assignTestSchema
+>;
+
+export const updateSampleTestStatusSchema = z.object({
+  status: z.enum([
+    "PENDING",
+    "IN_PROGRESS",
+    "COMPLETED",
+    "FAILED",
+    "CANCELLED",
+  ]),
+});
+
 export type UpdateSampleStatusInput = z.infer<
   typeof updateSampleStatusSchema
 >;
