@@ -10,6 +10,10 @@ import {
   updateSampleStatus,
   updateSampleTestStatus,
 } from "./sample.repository.js";
+import {
+  calculateOverallSlaStatus,
+  calculateSlaStatus,
+} from "./sample.sla.js";
 import type { CreateSampleInput } from "./sample.validation.js";
 type SampleStatus =
   | "RECEIVED"
@@ -17,11 +21,54 @@ type SampleStatus =
   | "COMPLETED"
   | "REJECTED";
 
-export async function getAllSamples() {
-  return findAllSamples();
+// export async function getAllSamples() {
+//   return findAllSamples();
+// }
+export async function getAllSamples(){
+  const samples = await findAllSamples();
+  return samples.map((sample)=>{
+    const tests = sample.tests.map((test)=>{
+      const sla = calculateSlaStatus(
+        test.dueAt,
+        test.status
+      );
+      return {
+        ...test,
+        ...sla,
+    }
+    })
+    return {
+      ...sample,
+      tests,
+      overallSlaStatus:
+      calculateOverallSlaStatus(
+        sample.tests
+      ),
+    }
+  })
 }
 export async function getSampleById(id: string) {
-  return findSampleById(id);
+  const sample = await findSampleById(id);
+
+  if (!sample) {
+    return null;
+  }
+
+  return {
+    ...sample,
+
+    tests: sample.tests.map((test) => {
+      const sla = calculateSlaStatus(
+        test.dueAt,
+        test.status
+      );
+
+      return {
+        ...test,
+        ...sla,
+      };
+    }),
+  };
 }
 
 
