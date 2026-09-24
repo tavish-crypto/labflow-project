@@ -171,3 +171,69 @@ export async function findAllTestDefinitions() {
     },
   });
 }
+
+export async function createOperationalException(data:{
+    sampleId: string;
+    type:
+    | "DELAY"
+    | "QUALITY_ISSUE"
+    | "MISSING_INFORMATION"
+    | "EQUIPMENT_FAILURE"
+    | "OTHER"
+    severity?:
+    | "LOW"
+    | "MEDIUM"
+    | "HIGH"
+    | "CRITICAL"
+    message: string
+}){
+  return db.operationalException.create({
+    data:{
+      sampleId: data.sampleId,
+      type: data.type,
+      severity: data.severity ?? "MEDIUM",
+      message: data.message,
+
+    },
+  })
+}
+
+export async function findOperationalExceptionById(
+  id: string
+) {
+  return db.operationalException.findUnique({
+    where: {
+      id,
+    },
+  });
+}
+
+export async function updateOperationalExceptionStatus(
+  id: string,
+  data:{
+    status: 
+    | "OPEN"
+    | "ACKNOWLEDGED"
+    | "RESOLVED"
+    resolvedById?: string;
+  }
+) {
+  return db.operationalException.update({
+    where:{
+      id,
+    },
+    data:{
+      status: data.status,
+      resolvedAt: 
+      data.status === "RESOLVED"
+      ? new Date()
+      : null,
+    
+    resolvedById:
+    data.status === "RESOLVED"
+    ? data.resolvedById
+    :null,
+    }
+  })
+  
+}

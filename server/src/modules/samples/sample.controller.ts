@@ -7,6 +7,8 @@ import {
   assignTestToSample,
   changeSampleTestStatus,
   getAllTestDefinitions,
+  createSampleException,
+  changeExceptionStatus,
 } from "./sample.service.js";
 
 import {
@@ -14,8 +16,12 @@ import {
   createSampleSchema,
   updateSampleStatusSchema,
   updateSampleTestStatusSchema,
+  createExceptionSchema,
+  updateExceptionStatusSchema,
 } from "./sample.validation.js";
 import { Prisma } from "@prisma/client";
+import { error } from "node:console";
+import { deflate } from "node:zlib";
 
 
 
@@ -379,6 +385,125 @@ export async function getTestDefinitionsController(
 
     res.status(500).json({
       error: "Failed to fetch test definitions",
+    });
+  }
+}
+
+export async function createExceptionController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const sampleId = req.params.id;
+
+    if (typeof sampleId !== "string") {
+      res.status(400).json({
+        error: "Invalid sample id",
+      });
+      return;
+    }
+
+    const parsed = createExceptionSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      });
+      return;
+    }
+
+    const result = await createSampleException(
+      sampleId,
+      parsed.data
+    );
+
+    if (!result.success) {
+      res.status(404).json({
+        error: "Sample not found",
+      });
+      return;
+    }
+
+    res.status(201).json({
+      data: result.exception,
+    });
+  } catch (error) {
+    console.error("Failed to create exception:", error);
+
+    res.status(500).json({
+      error: "Failed to create exception",
+    });
+  }
+}
+
+export async function updateExceptionStatusController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const sampleId = req.params.id;
+    const exceptionId = req.params.exceptionId;
+
+    if (
+      typeof sampleId !== "string" ||
+      typeof exceptionId !== "string"
+    ) {
+      res.status(400).json({
+        error: "Invalid id",
+      });
+      return;
+    }
+
+    const parsed =
+      updateExceptionStatusSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      });
+      return;
+    }
+
+    const result = await changeExceptionStatus(
+      sampleId,
+      exceptionId,
+      parsed.data.status,
+      parsed.data.resolvedById
+    );
+
+    if (!result.success) {
+  if (result.reason === "SAMPLE_NOT_FOUND") {
+    res.status(404).json({
+      error: "Sample not found",
+    });
+    return;
+  }
+
+  if (result.reason === "EXCEPTION_NOT_FOUND") {
+    res.status(404).json({
+      error: "Exception not found",
+    });
+    return;
+  }
+
+  if (result.reason === "EXCEPTION_SAMPLE_MISMATCH") {
+    res.status(409).json({
+      error: "Exception does not belong to this sample",
+    });
+    return;
+  }
+}
+
+    res.json({
+      data: result.exception,
+    });
+  } catch (error) {
+    console.error("Failed to update exception:", error);
+
+    res.status(500).json({
+      error: "Failed to update exception",
     });
   }
 }

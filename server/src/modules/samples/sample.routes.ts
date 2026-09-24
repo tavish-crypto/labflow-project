@@ -7,6 +7,8 @@ import {
   assignTestController,
 updateSampleTestStatusController,
 getTestDefinitionsController,
+createExceptionController,
+updateExceptionStatusController,
 } from "./sample.controller.js";
 
 
@@ -32,6 +34,14 @@ sampleRouter.patch(
   "/:id/tests/:sampleTestId/status",
   updateSampleTestStatusController
 );
+sampleRouter.post(
+  "/:id/exceptions",
+  createExceptionController
+);
 
+sampleRouter.patch(
+  "/:id/exceptions/:exceptionId/status",
+  updateExceptionStatusController
+);
 
 export default sampleRouter;

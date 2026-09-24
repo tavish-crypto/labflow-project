@@ -1,3 +1,4 @@
+import { success } from "zod";
 import {
   createSample,
   createSampleStatusEvent,
@@ -9,12 +10,16 @@ import {
   findTestDefinitionById,
   updateSampleStatus,
   updateSampleTestStatus,
+  createOperationalException,
+  findOperationalExceptionById,
+  updateOperationalExceptionStatus,
 } from "./sample.repository.js";
 import {
   calculateOverallSlaStatus,
   calculateSlaStatus,
 } from "./sample.sla.js";
 import type { CreateSampleInput } from "./sample.validation.js";
+import { readSync } from "node:fs";
 type SampleStatus =
   | "RECEIVED"
   | "IN_PROGRESS"
@@ -279,4 +284,93 @@ export async function changeSampleTestStatus(
 
 export async function getAllTestDefinitions() {
   return findAllTestDefinitions();
+}
+
+export async function createSampleException(
+  sampleId: string,
+  input: {
+    type:
+      | "DELAY"
+      | "QUALITY_ISSUE"
+      | "MISSING_INFORMATION"
+      | "EQUIPMENT_FAILURE"
+      | "OTHER";
+
+    severity?:
+      | "LOW"
+      | "MEDIUM"
+      | "HIGH"
+      | "CRITICAL";
+
+    message: string;
+  }
+) {
+  const sample = await findSampleById(sampleId);
+
+  if (!sample) {
+    return {
+      success: false as const,
+      reason: "SAMPLE_NOT_FOUND" as const,
+    };
+  }
+
+  const exception =
+    await createOperationalException({
+      sampleId,
+      type: input.type,
+      severity: input.severity,
+      message: input.message,
+    });
+
+  return {
+    success: true as const,
+    exception,
+  };
+}
+
+export async function changeExceptionStatus(
+  sampleId: string,
+  exceptionId: string,
+  status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED",
+  resolvedById?: string
+) {
+  const sample = await findSampleById(sampleId);
+
+  if (!sample) {
+    return {
+      success: false as const,
+      reason: "SAMPLE_NOT_FOUND" as const,
+    };
+  }
+
+  const exception =
+    await findOperationalExceptionById(exceptionId);
+
+  if (!exception) {
+    return {
+      success: false as const,
+      reason: "EXCEPTION_NOT_FOUND" as const,
+    };
+  }
+
+  if (exception.sampleId !== sampleId) {
+    return {
+      success: false as const,
+      reason: "EXCEPTION_SAMPLE_MISMATCH" as const,
+    };
+  }
+
+  const updated =
+    await updateOperationalExceptionStatus(
+      exceptionId,
+      {
+        status,
+        resolvedById,
+      }
+    );
+
+  return {
+    success: true as const,
+    exception: updated,
+  };
 }
