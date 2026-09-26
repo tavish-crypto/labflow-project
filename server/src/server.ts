@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import sampleRouter from "./modules/samples/sample.routes.js";
+import { dashboardRouter } from "./modules/samples/dashboard/dashboard.routes.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/samples", sampleRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 const PORT = process.env.PORT || 5000;
 
