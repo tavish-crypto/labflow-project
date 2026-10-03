@@ -1,5 +1,5 @@
 import { Request,Response } from "express";
-import { getDashboardSummmary } from "./dashboard.service";
+import { getDashboardSummmary} from "./dashboard.service";
 export async function getDashboardSummmaryController(
     _req: Request,
     res: Response

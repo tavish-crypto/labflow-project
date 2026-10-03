@@ -9,6 +9,7 @@ import {
   getAllTestDefinitions,
   createSampleException,
   changeExceptionStatus,
+  getSampleTimeline
 } from "./sample.service.js";
 
 import {
@@ -504,6 +505,38 @@ export async function updateExceptionStatusController(
 
     res.status(500).json({
       error: "Failed to update exception",
+    });
+  }
+}
+
+export async function getSampleTimelineController(
+  req:Request,
+  res:Response
+) {
+  try{
+    const sampleId = req.params.id
+    if(typeof sampleId !== "string"){
+      res.status(400).json({
+        error: "Invalid sample id",
+      })
+      return
+    }
+    const result = await getSampleTimeline(sampleId);
+    if(!result.success){
+      if(result.reason === "SAMPLE_NOT_FOUND"){
+        res.status(404).json({
+          error: "Sample not found"
+        })
+        return
+      }
+    }
+    res.status(200).json({
+      data: result
+    })
+  } catch (error) {
+    console.error("Failed to fetch sample timeline:", error);
+    res.status(500).json({
+      error: "Failed to fetch sample timeline"
     });
   }
 }

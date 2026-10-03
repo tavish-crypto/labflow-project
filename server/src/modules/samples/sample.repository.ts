@@ -237,3 +237,41 @@ export async function updateOperationalExceptionStatus(
   })
   
 }
+
+export async function findSampleEvents(sampleId:string){
+  return db.sampleEvent.findMany({
+    where:{
+      sampleId,
+    },
+    orderBy:{
+      createdAt: "asc",
+    },
+    include:{
+      actor:{
+        select:{
+          id:true,
+          name:true,
+          email:true,
+        },
+      },
+    },
+  });
+}
+
+export async function createGenericSampleEvent(data: {
+  sampleId: string;
+  type: "CREATED" | "STATUS_CHANGED" | "NOTE_ADDED" | "EXCEPTION_RAISED" | "EXCEPTION_RESOLVED";
+  fromStatus?: "RECEIVED" | "IN_PROGRESS" | "COMPLETED" | "REJECTED";
+  toStatus?: "RECEIVED" | "IN_PROGRESS" | "COMPLETED" | "REJECTED";
+  note?: string;
+}) {
+  return db.sampleEvent.create({
+    data: {
+      sampleId: data.sampleId,
+      type: data.type,
+      fromStatus: data.fromStatus,
+      toStatus: data.toStatus,
+      note: data.note,
+    },
+  });
+}

@@ -5,43 +5,25 @@ import {
   createSampleController,
   updateSampleStatusController,
   assignTestController,
-updateSampleTestStatusController,
-getTestDefinitionsController,
-createExceptionController,
-updateExceptionStatusController,
+  updateSampleTestStatusController,
+  getTestDefinitionsController,
+  createExceptionController,
+  updateExceptionStatusController,
+  getSampleTimelineController,
 } from "./sample.controller.js";
-
-
 
 const sampleRouter = Router();
 
 sampleRouter.get("/", getSamplesController);
-sampleRouter.get(
-  "/test-definitions",
-  getTestDefinitionsController
-);
+sampleRouter.get("/test-definitions", getTestDefinitionsController);
 sampleRouter.get("/:id", getSampleByIdController);
+sampleRouter.get("/:id/events", getSampleTimelineController);
+sampleRouter.get("/:id/timeline", getSampleTimelineController);
 sampleRouter.post("/", createSampleController);
-sampleRouter.patch(
-  "/:id/status",
-  updateSampleStatusController
-);
-sampleRouter.post(
-  "/:id/tests",
-  assignTestController
-);
-sampleRouter.patch(
-  "/:id/tests/:sampleTestId/status",
-  updateSampleTestStatusController
-);
-sampleRouter.post(
-  "/:id/exceptions",
-  createExceptionController
-);
-
-sampleRouter.patch(
-  "/:id/exceptions/:exceptionId/status",
-  updateExceptionStatusController
-);
+sampleRouter.patch("/:id/status", updateSampleStatusController);
+sampleRouter.post("/:id/tests", assignTestController);
+sampleRouter.patch("/:id/tests/:sampleTestId/status", updateSampleTestStatusController);
+sampleRouter.post("/:id/exceptions", createExceptionController);
+sampleRouter.patch("/:id/exceptions/:exceptionId/status", updateExceptionStatusController);
 
 export default sampleRouter;

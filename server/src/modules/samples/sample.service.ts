@@ -2,6 +2,7 @@ import { success } from "zod";
 import {
   createSample,
   createSampleStatusEvent,
+  createGenericSampleEvent,
   createSampleTest,
   findAllSamples,
   findAllTestDefinitions,
@@ -13,6 +14,7 @@ import {
   createOperationalException,
   findOperationalExceptionById,
   updateOperationalExceptionStatus,
+  findSampleEvents
 } from "./sample.repository.js";
 import {
   calculateOverallSlaStatus,
@@ -78,7 +80,7 @@ export async function getSampleById(id: string) {
 
 
 export async function createNewSample(input: CreateSampleInput) {
-  return createSample({
+  const newSample = await createSample({
     labId: input.labId,
     accessionNumber: input.accessionNumber,
     patientReference: input.patientReference,
@@ -86,6 +88,15 @@ export async function createNewSample(input: CreateSampleInput) {
     priority: input.priority,
     dueAt: new Date(input.dueAt),
   });
+
+  await createGenericSampleEvent({
+    sampleId: newSample.id,
+    type: "CREATED",
+    toStatus: "RECEIVED",
+    note: `Created and received specimen in laboratory.`,
+  });
+
+  return newSample;
 }
 
 
@@ -322,6 +333,13 @@ export async function createSampleException(
       message: input.message,
     });
 
+  await createGenericSampleEvent({
+    sampleId,
+    type: "EXCEPTION_RAISED",
+    toStatus: sample.status as SampleStatus,
+    note: `Exception (${input.type}): ${input.message}`,
+  });
+
   return {
     success: true as const,
     exception,
@@ -369,8 +387,32 @@ export async function changeExceptionStatus(
       }
     );
 
+  if (status === "RESOLVED") {
+    await createGenericSampleEvent({
+      sampleId,
+      type: "EXCEPTION_RESOLVED",
+      toStatus: sample.status as SampleStatus,
+      note: `Exception (${exception.type}) resolved`,
+    });
+  }
+
   return {
     success: true as const,
     exception: updated,
   };
+}
+
+export async function getSampleTimeline(sampleId: string) {
+  const sample  = await findSampleById(sampleId)
+  if(!sample){
+    return{
+      success: false as const,
+      reason: "SAMPLE_NOT_FOUND" as const,
+    }
+  }
+  const events = await findSampleEvents(sampleId)
+  return{
+    success: true as const,
+    events,
+  }
 }
